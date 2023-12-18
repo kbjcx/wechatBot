@@ -157,10 +157,32 @@ class Config(dict):
 
     def load_user_data(self):
         try:
-            with open(os.path.join(self.get_appdata_dir(), ))
+            with open(os.path.join(self.get_appdata_dir(), "user_datas.pkl"), "rb") as f:
+                self.user_datas = pickle.load(f)
+                logger.info("[Config] User datas loaded")
+        except FileNotFoundError as e:
+            logger.info("[Config] User datas file not found, ignore")
+        except Exception as e:
+            logger.info("[Config] User datas error: {}".format(e))
+            self.user_datas = {}
+    
+    def save_user_data(self):
+        try:
+            with open(os.path.join(self.get_appdata_dir(), "user_datas.pkl"), "wb") as f:
+                pickle.dump(self.user_datas, f)
+                logger.info("[Config] User datas saved")
+        except Exception as e:
+            logger.info("[Config] User datas error: {}".format(e))
 
 
 # 全局配置，用于存放全局生效的状态
 global_config = {
     "admin_users": []
 }
+
+# 初始化配置
+config = Config()
+
+def load_config():
+    global config
+    
