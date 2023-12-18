@@ -14,16 +14,16 @@ avaiable_config = {
     # chatgpt model
     "model": "gpt-3.5-turbo",
     # how to trigger the bot
-    "single_chat_prefix": ["bot"], # 私聊时的触发前缀
-    "single_chat_reply_prefix": "[bot] ", # 私聊bot回复的消息前缀
-    "single_chat_reply_suffix": "", # 私聊bot回复的消息后缀
-    "group_chat_prefix": ["@bot"], # 群聊时的触发前缀
-    "group_chat_reply_prefix": "", # 群聊时自动回复的前缀
-    "group_chat_reply_suffix": "", # 群聊时自动回复的后缀
-    "group_chat_keyword": [], # 群聊时自动回复的关键字
-    "group_at_off": False, # 群聊时是否关闭at bot的功能
-    "group_name_white_list": [], # 允许触发bot的群名
-    "group_name_keyword_white_list": [], # 允许触发bot的群名关键字
+    "single_chat_prefix": ["bot"],  # 私聊时的触发前缀
+    "single_chat_reply_prefix": "[bot] ",  # 私聊bot回复的消息前缀
+    "single_chat_reply_suffix": "",  # 私聊bot回复的消息后缀
+    "group_chat_prefix": ["@bot"],  # 群聊时的触发前缀
+    "group_chat_reply_prefix": "",  # 群聊时自动回复的前缀
+    "group_chat_reply_suffix": "",  # 群聊时自动回复的后缀
+    "group_chat_keyword": [],  # 群聊时自动回复的关键字
+    "group_at_off": False,  # 群聊时是否关闭at bot的功能
+    "group_name_white_list": [],  # 允许触发bot的群名
+    "group_name_keyword_white_list": [],  # 允许触发bot的群名关键字
     "group_chat_in_one_session": [],  # 支持会话上下文共享的群名称
     "nick_name_black_list": [],  # 用户昵称黑名单
     "group_welcome_msg": "",  # 配置新人进群固定欢迎语，不配置则使用随机风格欢迎
@@ -32,14 +32,15 @@ avaiable_config = {
     "image_create_prefix": ["画"],  # 开启图片回复的前缀
     "concurrency_in_session": 1,  # 同一会话最多有多少条消息在处理中，大于1可能乱序
     "image_create_size": "256x256",  # 图片大小,可选有 256x256, 512x512, 1024x1024
-    "group_chat_exit_group": False, 
+    "group_chat_exit_group": False,
     "expires_in_seconds": 3600,  # 无操作会话的过期时间
-    "character_desc": "你是ChatGPT, 一个由OpenAI训练的大型语言模型, 你旨在回答并解决人们的任何问题，并且可以使用多种语言与人交流", # chatgpt人格描述
+    "character_desc": "你是ChatGPT, 一个由OpenAI训练的大型语言模型,你旨在回答并解决人们的任何问题，并且可以使用多种语言与人交流",
+    # chatgpt人格描述
     "conversation_max_tokens": 1000,  # 支持上下文记忆的最多字符数
     "rate_limit_chatgpt": 20,  # chatgpt的调用频率限制
     "rate_limit_dalle": 50,  # openai dalle的调用频率限制
     # chatgpt api参数设置 https://platform.openai.com/docs/api-reference/chat/create
-    "temperature": 0.9, # 0-1之间的浮点数，值越高，模型越倾向于随机性
+    "temperature": 0.9,  # 0-1之间的浮点数，值越高，模型越倾向于随机性
     "top_p": 1,
     "frequency_penalty": 0,
     "presence_penalty": 0,
@@ -84,5 +85,82 @@ avaiable_config = {
     "use_global_plugin_config": False,
 }
 
+
 class Config(dict):
-    def 
+    def __init__(self, d=None):
+        super().__init__()
+        if d is None:
+            d = {}
+        for k, v in d.items():
+            self[k] = v
+        # user_datas: key is username, value is userdata
+        self.user_datas = {}
+        self.plugin_config = {}
+
+    def __getitem__(self, key):
+        if key not in avaiable_config:
+            raise Exception("key {} is not a available setting".format(key))
+        return super().__getitem__(key)
+
+    def __setitem__(self, key, value):
+        if key not in avaiable_config:
+            raise Exception("key {} is not a available setting".format(key))
+        return super().__setitem__(key, value)
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError as e:
+            return default
+        except Exception as e:
+            raise e
+
+    def get_user_data(self, user) -> dict:
+        '''
+        get user data, if not exist then create a new dict
+        '''
+        if self.user_datas.get(user) is None:
+            self.user_datas[user] = {}
+        return self.user_datas[user]
+
+    def get_root(self):
+        return os.path.dirname(os.path.abspath(__file__))
+
+    def read_file(self, path):
+        with open(path, mode="r", encoding="utf-8") as f:
+            return f.read()
+
+    def get_appdata_dir(self):
+        data_path = os.path.join()
+        if not os.path.exists(data_path):
+            logger.info("[INIT] data path not exists, create it: {}".format(data_path))
+            os.makedirs(data_path)
+        return data_path
+
+    def subscribe_msg(self):
+        trigger_prefix = self.get("single_chat_prefix", [""])[0]
+        msg = self.get("subscribe_msg", "")
+        return msg.format(trigger_prefix=trigger_prefix)
+
+    def write_plugin_config(self, pconf: dict):
+        '''
+        写入插件全局配置
+        '''
+        for k in pconf.keys():
+            self.plugin_config[k.lower()] = pconf[k]
+
+    def pconf(self, plugin_name: str) -> dict:
+        '''
+        根据插件名称获取配置
+        '''
+        return self.plugin_config.get(plugin_name.lower())
+
+    def load_user_data(self):
+        try:
+            with open(os.path.join(self.get_appdata_dir(), ))
+
+
+# 全局配置，用于存放全局生效的状态
+global_config = {
+    "admin_users": []
+}
