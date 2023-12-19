@@ -96,6 +96,12 @@ class Config(dict):
         # user_datas: key is username, value is userdata
         self.user_datas = {}
         self.plugin_config = {}
+    
+    def load_str(self, d=None):
+        if d is None:
+            d = {}
+        for k, v in d.items():
+            self[k] = v
 
     def __getitem__(self, key):
         if key not in avaiable_config:
@@ -155,7 +161,7 @@ class Config(dict):
         '''
         return self.plugin_config.get(plugin_name.lower())
 
-    def load_user_data(self):
+    def load_user_datas(self):
         try:
             with open(os.path.join(self.get_appdata_dir(), "user_datas.pkl"), "rb") as f:
                 self.user_datas = pickle.load(f)
@@ -166,7 +172,7 @@ class Config(dict):
             logger.info("[Config] User datas error: {}".format(e))
             self.user_datas = {}
     
-    def save_user_data(self):
+    def save_user_datas(self):
         try:
             with open(os.path.join(self.get_appdata_dir(), "user_datas.pkl"), "wb") as f:
                 pickle.dump(self.user_datas, f)
@@ -183,6 +189,29 @@ global_config = {
 # 初始化配置
 config = Config()
 
+def conf():
+    global config
+    return config
+
 def load_config():
     global config
+    config_path = "./config.json"
+    if not os.path.exists(config_path):
+        logger.info("can not find config file, use the config-template.json")
+        config_path = "./config_template.json"
+    
+    config_str = config.read_file(config_path)
+    logger.debug("[INIT] config str: {}".format(config_str))
+    
+    # transfer json to dict
+    config.load_str(config_str)
+    
+    if config.get("debug", False):
+        logger.setLevel(logging.DEBUG)
+        logger.debug("[INIT] set log level to debug")
+        
+    logger.info("[INIT] load config: {}".format(config))
+    
+    config.load_user_datas()
+    
     
